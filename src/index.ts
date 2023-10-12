@@ -6,7 +6,6 @@ import * as cors from "cors";
 import { Request, Response } from "express";
 import { AppDataSource } from "./data-source";
 import { Routes } from "./routes/routes";
-import { User } from "./entity/User";
 import { AppRoutes } from "./routes/app-routes";
 
 AppDataSource.initialize()
