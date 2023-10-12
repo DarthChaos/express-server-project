@@ -1,9 +1,10 @@
 import { AppDataSource } from "../data-source";
 import { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 import { User } from "../entity/User";
+import { createUserSchema } from "../schemas/user.schemas";
 
 import Controller from "./Controller";
-import { Repository } from "typeorm";
 
 export class UserController implements Controller {
   private userRepository = AppDataSource.getRepository(User);
@@ -35,19 +36,34 @@ export class UserController implements Controller {
 
   async save(
     request: Request,
-    response?: Response,
+    response: Response,
     next?: NextFunction,
   ): Promise<User> {
-    const { firstName, lastName, age, active } = request.body;
+    try {
+      const body = createUserSchema.parse(request.body);
+      const { firstName, lastName, age, active } = body;
 
-    const user = Object.assign(new User(), {
-      firstName,
-      lastName,
-      age,
-      active,
-    });
+      const user = Object.assign(new User(), {
+        firstName,
+        lastName,
+        age,
+        active,
+      });
 
-    return this.userRepository.save(user);
+      return this.userRepository.save(user);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        response.status(400).json({
+          messages: error.issues.map((issue) => ({
+            message: `${issue.message} - On: ${issue.path.join(", ")}`,
+            hint: issue.code,
+          })),
+        });
+      } else
+        response
+          .status(500)
+          .json({ message: "Internal Server Error. Please, try again." }).req;
+    }
   }
 
   async remove(
